@@ -1,0 +1,5 @@
+[
+  { "id": 1, "teamA": "Toluca", "teamB": "Tigres" },
+  { "id": 2, "teamA": "América", "teamB": "Chivas" },
+  { "id": 3, "teamA": "Pumas", "teamB": "León" }
+]
