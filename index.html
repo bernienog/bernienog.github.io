@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Votación Fantasy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div id="login" class="min-h-screen flex items-center justify-center">
+    <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+      <h1 class="text-xl font-semibold mb-4">Ingresa tu código</h1>
+      <input type="text" id="usercode" placeholder="Código único" class="w-full p-2 border rounded mb-4">
+      <button onclick="checkCode()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Entrar</button>
+    </div>
+  </div>
+
+  <div id="app" class="hidden p-4">
+    <h2 class="text-2xl font-bold mb-4">Jornada 5</h2>
+    <div id="matchups" class="space-y-4"></div>
+    <div class="mt-6">
+      <button onclick="showReview()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Revisar Selecciones</button>
+    </div>
+  </div>
+
+  <div id="review" class="hidden p-4">
+    <h2 class="text-xl font-semibold mb-4">Revisión final</h2>
+    <ul id="reviewList" class="list-disc pl-5"></ul>
+    <div class="mt-4 flex gap-4">
+      <button onclick="editVotes()" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Editar</button>
+      <button onclick="submitVotes()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/exec"; // reemplaza con tu URL real
+    let currentUserCode = null;
+    let votes = {};
+    let matchups = [];
+
+    function checkCode() {
+      const code = document.getElementById("usercode").value.trim().toUpperCase();
+      if (!code) {
+        alert("Por favor ingresa tu código");
+        return;
+      }
+      currentUserCode = code;
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      loadMatchups();
+    }
+
+    function loadMatchups() {
+      fetch("matchups.json")
+        .then(res => res.json())
+        .then(data => {
+          matchups = data;
+          const container = document.getElementById("matchups");
+          container.innerHTML = "";
+          data.forEach(match => {
+            const div = document.createElement("div");
+            div.className = "bg-white p-4 rounded shadow";
+            div.innerHTML = `
+              <p class="mb-2 font-semibold">${match.teamA} vs ${match.teamB}</p>
+              <div class="flex gap-4">
+                <button onclick="selectTeam(${match.id}, '${match.teamA}')" class="px-4 py-2 bg-blue-500 text-white rounded">${match.teamA}</button>
+                <button onclick="selectTeam(${match.id}, '${match.teamB}')" class="px-4 py-2 bg-red-500 text-white rounded">${match.teamB}</button>
+              </div>
+            `;
+            container.appendChild(div);
+          });
+        });
+    }
+
+    function selectTeam(matchId, team) {
+      votes[matchId] = team;
+    }
+
+    function showReview() {
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("review").classList.remove("hidden");
+
+      const list = document.getElementById("reviewList");
+      list.innerHTML = "";
+      matchups.forEach(match => {
+        const li = document.createElement("li");
+        const vote = votes[match.id] || "Sin selección";
+        li.textContent = `${match.teamA} vs ${match.teamB}: ${vote}`;
+        list.appendChild(li);
+      });
+    }
+
+    function editVotes() {
+      document.getElementById("review").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+    }
+
+    function submitVotes() {
+      const entries = Object.entries(votes);
+      if (entries.length === 0) {
+        alert("No has seleccionado ningún partido");
+        return;
+      }
+      entries.forEach(([matchId, team]) => {
+        fetch(SHEET_ENDPOINT, {
+          method: "POST",
+          body: JSON.stringify({
+            usercode: currentUserCode,
+            matchup_id: matchId,
+            picked_team: team
+          }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+      });
+      alert("¡Votos enviados!");
+      location.reload();
+    }
+  </script>
+</body>
+</html>
